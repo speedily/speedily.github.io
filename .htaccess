@@ -1,0 +1,4 @@
+
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^abhishekjha\.com$
+RewriteRule ^/?$ "https\:\/\/www\.abhishekjha\.com\/" [R=301,L]
