@@ -1,1 +1,153 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>She Lancer Portfolio Theme Information</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f9f9f9;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 32px 24px 40px 24px;
+        }
+        .theme-header {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+        .theme-header img {
+            width: 320px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .theme-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .theme-meta {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .section {
+            margin-bottom: 32px;
+        }
+        h2 {
+            font-size: 1.4rem;
+            color: #4f46e5;
+            margin-bottom: 12px;
+        }
+        ul {
+            margin: 0 0 0 20px;
+        }
+        .plugin-list {
+            background: #f3f4f6;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin-bottom: 0;
+        }
+        .plugin-list li {
+            margin-bottom: 8px;
+        }
+        .copyright {
+            font-size: 0.95rem;
+            color: #888;
+            text-align: center;
+            margin-top: 40px;
+        }
+        @media (max-width: 700px) {
+            .theme-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .theme-header img {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="theme-header">
+            <img src="screenshot.png" alt="She Lancer Portfolio Theme Screenshot">
+            <div>
+                <div class="theme-title">She Lancer Portfolio</div>
+                <div class="theme-meta">Version 1.0 &mdash; by Abhishek Jha</div>
+                <div class="theme-meta">Text Domain: she-lancer-portfolio</div>
+                <div class="theme-meta">License: GPL v2 or later</div>
+                <div class="theme-meta">Theme URI: <a href="https://shelancer.com" target="_blank">https://shelancer.com</a></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Theme Description</h2>
+            <p>
+                She Lancer Portfolio is a modern, award-winning WordPress theme designed for freelancers and creative professionals. It features dual color schemes, interactive animations, and a clean, responsive layout. Showcase your work, services, testimonials, and experience with ease.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Theme Features</h2>
+            <ul>
+                <li>Responsive Design</li>
+                <li>Custom Portfolio Section</li>
+                <li>Services Showcase</li>
+                <li>Testimonials</li>
+                <li>Experience Timeline</li>
+                <li>Contact Section with Google Maps Integration</li>
+                <li>Dual Color Schemes (Classic &amp; Modern)</li>
+                <li>Interactive Animations</li>
+                <li>SEO Optimized</li>
+                <li>Translation Ready</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Required Plugins</h2>
+            <ul class="plugin-list">
+                <li><strong>She Lancer Portfolio CPT</strong><br>
+                    <span>Handles custom post types for portfolio, services, testimonials, and experience.<br>
+                    <em>File:</em> <code>inc/she-lancer-cpt/she-lancer-cpt.php</code></span>
+                </li>
+                <li><strong>She Lancer Portfolio Meta</strong><br>
+                    <span>Handles meta boxes for testimonials.<br>
+                    <em>File:</em> <code>inc/she-lancer-meta/she-lancer-meta.php</code></span>
+                </li>
+                <li><strong>She Lancer Portfolio Dummy</strong><br>
+                    <span>Handles dummy data import/export functionality.<br>
+                    <em>File:</em> <code>inc/she-lancer-dummy/she-lancer-dummy.php</code></span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>How to Use</h2>
+            <ul>
+                <li>Activate the theme via <strong>Appearance &gt; Themes</strong></li>
+                <li>Install and activate the required plugins (included in the theme)</li>
+                <li>Import dummy data from <strong>Appearance &gt; Theme Settings</strong> (optional)</li>
+                <li>Customize your site via <strong>Appearance &gt; Customize</strong></li>
+                <li>Add portfolio items, services, testimonials, and experience via their respective menu items in the WordPress dashboard</li>
+            </ul>
+        </div>
+
+        <div class="copyright">
+            &copy; 2024 Abhishek Jha. All rights reserved. | <a href="https://shelancer.com" target="_blank">shelancer.com</a>
+        </div>
+    </div>
+</body>
+</html> 
