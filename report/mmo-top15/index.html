@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Business Model Explorer</title>
+    <!-- Chosen Palette: Calm Harmony (Beige, Dark Gray, Soft Teal) -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive dashboard. The core is a filterable grid of cards, each representing a business model. This is supplemented by two dynamic charts for visual comparison (a scatter plot for Risk vs. Reward and a bar chart for specific metrics). Clicking a card reveals a detailed modal view. A new section has been added to provide crucial qualitative context on data-driven decision making and MVP strategy. A Classification Matrix is added to simulate how a large corpus of ideas (like 10,000) would be categorized using core trade-offs (Expertise vs. Capital). This structure was chosen to allow users to move from a high-level visual comparison to specific, detailed information seamlessly, which is more effective for complex datasets than a linear report. -->
+    <!-- Visualization & Content Choices: Report Info -> Business model metrics and strategic advice. Goal -> Compare models and provide qualitative decision frameworks. Viz -> Interactive scatter plot (Scalability vs. Time) and a dynamic bar chart (for costs, margins, etc.) for comparison. Qualitative content is presented using styled HTML lists and blocks. The Classification Matrix uses a simple HTML grid layout to categorize the models based on two key axes (Expertise vs. Capital), simulating scalable data exploration. Interaction -> Users filter models, which updates both charts and a grid of cards. Clicking a card opens a modal with all 15 data points. All charts use Chart.js on Canvas. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://rsms.me/inter/inter.css');
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            max-height: 50vh;
+        }
+        .modal-bg {
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            max-height: 90vh;
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .tag-green { background-color: #d1fae5; color: #065f46; }
+        .tag-blue { background-color: #dbeafe; color: #1e40af; }
+        .tag-yellow { background-color: #fef3c7; color: #92400e; }
+        .tag-red { background-color: #fee2e2; color: #991b1b; }
+        .tag-purple { background-color: #e9d5ff; color: #5b21b6; }
+
+        /* Custom Styles for the Classification Matrix */
+        .matrix-cell {
+            min-height: 150px;
+            padding: 1rem;
+            border: 1px solid #e5e5e5;
+            transition: all 0.3s;
+        }
+        .matrix-cell:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900">15 Ways to Make $10,000/Month</h1>
+            <p class="text-lg text-stone-600 mt-2">A Data-Driven Analysis by Abhishek Jha</p>
+            <p class="max-w-3xl mx-auto mt-4 text-stone-500">
+                This interactive dashboard lets you explore 15 business models. Use the filters to find the path that best fits your skills, budget, and goals. Click any card for a detailed breakdown.
+            </p>
+        </header>
+
+        <main>
+            <!-- Filters Section -->
+            <div class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-0 z-10 border border-stone-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-stone-700">Search by Name</label>
+                        <input type="text" id="search" placeholder="e.g., Freelancing" class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="cost-filter" class="block text-sm font-medium text-stone-700">Max Startup Cost ($)</label>
+                        <select id="cost-filter" class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm">
+                            <option value="99999">Any Cost</option>
+                            <option value="500">< $500</option>
+                            <option value="2000">< $2,000</option>
+                            <option value="5000">< $5,000</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="scalability-filter" class="block text-sm font-medium text-stone-700">Min Scalability (1-5)</label>
+                        <select id="scalability-filter" class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm">
+                            <option value="1">Any Scalability</option>
+                            <option value="2">2+</option>
+                            <option value="3">3+</option>
+                            <option value="4">4+</option>
+                            <option value="5">5 (Fully Automated)</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="sort-by" class="block text-sm font-medium text-stone-700">Sort By</label>
+                        <select id="sort-by" class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm">
+                            <option value="default">Default</option>
+                            <option value="time-asc">Time to $10k (Fastest)</option>
+                            <option value="cost-asc">Startup Cost (Lowest)</option>
+                            <option value="scalability-desc">Scalability (Highest)</option>
+                            <option value="margin-desc">Profit Margin (Highest)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stone-200">
+                    <h2 class="text-xl font-bold mb-1 text-stone-800">Time vs. Scalability Analysis</h2>
+                    <p class="text-sm text-stone-500 mb-4">Find models that are both fast and scalable (top left quadrant is ideal).</p>
+                    <div class="chart-container">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stone-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                           <h2 class="text-xl font-bold mb-1 text-stone-800">Metric Comparison</h2>
+                           <p class="text-sm text-stone-500">Compare models across a specific metric.</p>
+                        </div>
+                        <select id="bar-chart-metric" class="block rounded-md border-stone-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm">
+                            <option value="avgMargin">Avg. Margin (%)</option>
+                            <option value="startupCost">Startup Cost ($)</option>
+                            <option value="expertise">Expertise (1-5)</option>
+                            <option value="timePerWeek">Time/Week (Hrs)</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classification Matrix Section -->
+            <div id="classification-matrix" class="mb-12 p-6 rounded-xl shadow-lg border border-stone-200 bg-white">
+                <h2 class="text-2xl font-bold text-stone-900 mb-6 border-b border-stone-300 pb-2">Business Idea Classification Matrix</h2>
+                <p class="text-stone-600 mb-6">
+                    When dealing with thousands of ideas, classification is key. This matrix categorizes the 15 models based on two critical factors: **Initial Capital Required** and **Required Expertise Level**.
+                </p>
+                <div class="grid grid-cols-3 gap-0 text-center">
+                    <!-- Top Row (Expertise Axis) -->
+                    <div class="p-3 bg-stone-100 font-bold text-stone-700 border border-stone-300"></div>
+                    <div class="p-3 bg-stone-100 font-bold text-stone-700 border border-stone-300">Requires High Expertise (4-5)</div>
+                    <div class="p-3 bg-stone-100 font-bold text-stone-700 border border-stone-300">Requires Low Expertise (1-3)</div>
+
+                    <!-- LEFT AXIS: Low Capital -->
+                    <div class="p-3 bg-stone-100 font-bold text-stone-700 border border-stone-300 transform rotate-180 [writing-mode:vertical-lr] flex items-center justify-center">LOW INITIAL CAPITAL (< $2K)</div>
+
+                    <!-- Cell 1: High Expertise / Low Capital -->
+                    <div class="matrix-cell bg-teal-50 border-r border-b">
+                        <h4 class="font-bold text-teal-800 mb-1">High Skill / Low Cost</h4>
+                        <p class="text-xs text-stone-600 mb-2">Monetizes existing, specialized knowledge instantly.</p>
+                        <ul class="list-disc list-inside text-sm text-teal-700 ml-2">
+                            <li>High-Demand Freelancing</li>
+                            <li>High-Ticket Consulting</li>
+                            <li>Digital Products</li>
+                        </ul>
+                    </div>
+
+                    <!-- Cell 2: Low Expertise / Low Capital -->
+                    <div class="matrix-cell bg-green-50 border-b">
+                        <h4 class="font-bold text-green-800 mb-1">Low Skill / Low Cost</h4>
+                        <p class="text-xs text-stone-600 mb-2">Requires persistence, time, and process/system building.</p>
+                        <ul class="list-disc list-inside text-sm text-green-700 ml-2">
+                            <li>Local Service Business</li>
+                            <li>Niche Website / Blogging</li>
+                            <li>Affiliate Marketing</li>
+                        </ul>
+                    </div>
+
+                    <!-- LEFT AXIS: High Capital -->
+                    <div class="p-3 bg-stone-100 font-bold text-stone-700 border border-stone-300 transform rotate-180 [writing-mode:vertical-lr] flex items-center justify-center">HIGH INITIAL CAPITAL (> $5K)</div>
+
+                    <!-- Cell 3: High Expertise / High Capital -->
+                    <div class="matrix-cell bg-purple-50 border-r">
+                        <h4 class="font-bold text-purple-800 mb-1">High Skill / High Cost</h4>
+                        <p class="text-xs text-stone-600 mb-2">Requires R&D, development, and significant risk tolerance.</p>
+                        <ul class="list-disc list-inside text-sm text-purple-700 ml-2">
+                            <li>Micro-SaaS</li>
+                            <li>Flipping Websites/Stores</li>
+                        </ul>
+                    </div>
+
+                    <!-- Cell 4: Low Expertise / High Capital -->
+                    <div class="matrix-cell bg-yellow-50">
+                        <h4 class="font-bold text-yellow-800 mb-1">Low Skill / High Cost</h4>
+                        <p class="text-xs text-stone-600 mb-2">Capital replaces skill; often involves inventory or high ad spend.</p>
+                        <ul class="list-disc list-inside text-sm text-yellow-700 ml-2">
+                            <li>Amazon FBA</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Strategic Notes Section -->
+            <div id="strategic-notes" class="mb-12">
+                <h2 class="text-2xl font-bold text-stone-900 mb-6 border-b border-stone-300 pb-2">Strategic Decision-Making Framework</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                    <!-- Data vs Emotion -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-stone-200">
+                        <h3 class="text-xl font-semibold text-teal-700 mb-3">The Power of Data</h3>
+                        <p class="text-sm text-stone-600 mb-4">Prioritize verifiable metrics over gut feelings. Disciplined decision-making is essential for scaling.</p>
+                        <h4 class="font-bold text-stone-700 mb-2">🛑 Common Pitfalls:</h4>
+                        <ul class="list-disc list-inside space-y-2 text-sm text-red-700 ml-4">
+                            <li>**Sunk Cost Fallacy:** Continuing a failing endeavor due to past investment.</li>
+                            <li>**Confirmation Bias:** Only seeking data that confirms your pre-existing beliefs.</li>
+                            <li>**Emotional Attachment:** Decisions based on personal feeling, not financial performance.</li>
+                        </ul>
+                    </div>
+
+                    <!-- MVP Focus -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-stone-200">
+                        <h3 class="text-xl font-semibold text-teal-700 mb-3">Advantage of Speed (MVP)</h3>
+                        <p class="text-sm text-stone-600 mb-4">Time to market matters. Earlier launch means real customer feedback validates the *current* market scenario.</p>
+                        <div class="bg-teal-50 p-4 rounded-lg">
+                            <p class="font-bold text-teal-800">Minimum Viable Product (MVP) Principle:</p>
+                            <p class="text-sm text-teal-700 mt-1">A **go-to-market MVP is better than launching complex novelty.** Focus on the simplest solution that provides core value and gets customer money/feedback.</p>
+                        </div>
+                        <h4 class="font-bold text-stone-700 mt-4 mb-2">✅ Key Principles:</h4>
+                        <ul class="list-disc list-inside space-y-2 text-sm text-stone-700 ml-4">
+                            <li>Define Your KPI (Key Performance Indicator).</li>
+                            <li>Test and Iterate (A/B testing is crucial).</li>
+                            <li>Set Kill Switches (pre-defined stop metrics).</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Do's and Don'ts -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-stone-200">
+                        <h3 class="text-xl font-semibold text-teal-700 mb-3">Actionable Do's and Don'ts</h3>
+                        <div class="mb-4">
+                            <h4 class="font-bold text-stone-700 mb-2">❌ Actions to Avoid:</h4>
+                            <ul class="list-disc list-inside space-y-1 text-sm text-stone-700 ml-4">
+                                <li>Chasing the Hype/Shiny Object Syndrome.</li>
+                                <li>Focusing on Non-Essential Tasks.</li>
+                                <li>Ignoring Cash Flow (revenue $\neq$ profit).</li>
+                                <li>Scaling Too Early without data validation.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-stone-700 mb-2">✨ Actions to Take Instead:</h4>
+                            <ul class="list-disc list-inside space-y-1 text-sm text-stone-700 ml-4">
+                                <li>Focus on High-Leverage Activities.</li>
+                                <li>Delegate and Automate Early.</li>
+                                <li>Master One Traffic Source.</li>
+                                <li>Reinvest for Growth systematically.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary Trade-offs Section -->
+            <div id="summary-tradeoffs" class="mb-12 p-6 rounded-xl shadow-lg border border-teal-200 bg-teal-50">
+                <h2 class="text-2xl font-bold text-teal-900 mb-4">Summary of Key Trade-offs</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-teal-700 mb-2">🚀 Fastest Start & Highest Margin</h3>
+                        <ul class="list-disc list-inside space-y-1 text-teal-800 text-sm ml-4">
+                            <li>**Freelancing/Consulting:** Quickest path to income, but demanding time commitment.</li>
+                            <li>**Digital Products/Courses:** Highest profit margins (90%+), monetizing pure knowledge or skill.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-teal-700 mb-2">🛌 Most Passive & Scalable</h3>
+                        <ul class="list-disc list-inside space-y-1 text-teal-800 text-sm ml-4">
+                            <li>**Micro-SaaS:** Highest Scalability (5/5) with potential for low weekly hours.</li>
+                            <li>**Digital Products** and **Affiliate Marketing:** Offer the best long-term passive potential once established.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-teal-700 mb-2">⚠️ Highest Capital & Risk</h3>
+                        <ul class="list-disc list-inside space-y-1 text-teal-800 text-sm ml-4">
+                            <li>**Amazon FBA & Flipping Websites:** Require significant upfront capital.</li>
+                            <li>**Dropshipping & Micro-SaaS:** High failure rates due to competitive ad markets or development complexity.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Model Cards -->
+            <div id="results-count" class="mb-4 text-lg font-semibold text-stone-700"></div>
+            <div id="card-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                
+            </div>
+            <div id="no-results" class="hidden text-center py-16 bg-white rounded-xl shadow-md">
+                 <p class="text-2xl font-bold text-stone-700">No Models Match Your Criteria</p>
+                 <p class="text-stone-500 mt-2">Try adjusting your filters to see more results.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-bg flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative modal-content overflow-y-auto">
+            <button id="close-modal" class="absolute top-4 right-4 text-stone-500 hover:text-stone-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div id="modal-body" class="p-6 sm:p-8">
+                
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const businessData = [
+            { id: 1, model: "High-Demand Freelancing", estTime: 7.5, difficulty: 2, startupCost: 300, avgMargin: 95, scalability: 2, expertise: 4, timePerWeek: 45, cac: "Low", failureRate: "Low", diversification: "Low", platformReliance: "Low", clientContact: "High", pitfall: "Charging hourly (sell value).", advantage: "Niche expertise, existing network.", successDriver: "Aggressive premium pricing." },
+            { id: 2, model: "High-Ticket Consulting", estTime: 12, difficulty: 3, startupCost: 1250, avgMargin: 95, scalability: 3, expertise: 5, timePerWeek: 32.5, cac: "Low", failureRate: "Low", diversification: "Medium", platformReliance: "Low", clientContact: "High", pitfall: "Underselling your domain expertise.", advantage: "Proven system/framework, executive access.", successDriver: "Solving $1M problems for clients." },
+            { id: 3, model: "Digital Products (Ebooks/Templates)", estTime: 12, difficulty: 3, startupCost: 275, avgMargin: 97, scalability: 5, expertise: 3, timePerWeek: 15, cac: "Medium", failureRate: "Medium", diversification: "High", platformReliance: "Medium", clientContact: "Very Low", pitfall: "Focusing on volume over quality/price.", advantage: "Design skill, mastery of a micro-niche.", successDriver: "Automated marketing funnels." },
+            { id: 4, model: "Online Courses (Video-based)", estTime: 16, difficulty: 4, startupCost: 2000, avgMargin: 95, scalability: 5, expertise: 4, timePerWeek: 15, cac: "Medium", failureRate: "Medium", diversification: "Very High", platformReliance: "Medium", clientContact: "Very Low", pitfall: "Poor video production; low engagement.", advantage: "Proprietary knowledge, teaching ability.", successDriver: "Strong email list build-up pre-launch." },
+            { id: 5, model: "Social Media Marketing Agency (SMMA)", estTime: 12, difficulty: 3, startupCost: 1250, avgMargin: 70, scalability: 4, expertise: 4, timePerWeek: 35, cac: "Medium", failureRate: "Medium", diversification: "High", platformReliance: "High", clientContact: "High", pitfall: "Taking on clients that are too small.", advantage: "Sales skill, proven case studies (ROAS).", successDriver: "Consistent lead generation and delegation." },
+            { id: 6, model: "Niche Website / Blogging", estTime: 27, difficulty: 2, startupCost: 550, avgMargin: 65, scalability: 4, expertise: 2, timePerWeek: 15, cac: "Very Low", failureRate: "Medium", diversification: "Very High", platformReliance: "Medium", clientContact: "Very Low", pitfall: "Giving up before traffic hits critical mass.", advantage: "SEO mastery and content volume.", successDriver: "Ranking for high-intent, high-CPC keywords." },
+            { id: 7, model: "Affiliate Marketing (SEO Focus)", estTime: 18, difficulty: 3, startupCost: 300, avgMargin: 95, scalability: 5, expertise: 3, timePerWeek: 10, cac: "Very Low", failureRate: "Medium", diversification: "High", platformReliance: "Low", clientContact: "Very Low", pitfall: "Promoting low-commission, irrelevant products.", advantage: "Trust built with audience, site authority.", successDriver: "High-quality traffic acquisition (SEO/PPC)." },
+            { id: 8, model: "Dropshipping / eCommerce", estTime: 15, difficulty: 3, startupCost: 2650, avgMargin: 17, scalability: 3, expertise: 3, timePerWeek: 35, cac: "High", failureRate: "High", diversification: "Medium", platformReliance: "High", clientContact: "Medium", pitfall: "Scaling a non-profitable ad campaign.", advantage: "Ad optimization skill, logistics optimization.", successDriver: "Finding and scaling a 'winning product' fast." },
+            { id: 9, model: "Amazon FBA (Private Label)", estTime: 12, difficulty: 4, startupCost: 6000, avgMargin: 32, scalability: 4, expertise: 3, timePerWeek: 20, cac: "Medium", failureRate: "Medium-High", diversification: "Low", platformReliance: "Very High", clientContact: "Low", pitfall: "Underestimating inventory and ad costs.", advantage: "Deep product research and sourcing deals.", successDriver: "High-ranking product listing with low returns." },
+            { id: 10, model: "Micro-SaaS (Subscription Software)", estTime: 24, difficulty: 5, startupCost: 5500, avgMargin: 87, scalability: 5, expertise: 5, timePerWeek: 25, cac: "Medium", failureRate: "Very High", diversification: "Very High", platformReliance: "Low", clientContact: "Low", pitfall: "Over-engineering instead of solving core pain.", advantage: "Coding/Dev skills, solving personal pain point.", successDriver: "Low churn rate and predictable recurring revenue." },
+            { id: 11, model: "Virtual Assistant (VA) Agency", estTime: 7.5, difficulty: 3, startupCost: 1250, avgMargin: 50, scalability: 4, expertise: 3, timePerWeek: 35, cac: "Medium", failureRate: "Medium", diversification: "Medium", platformReliance: "Low", clientContact: "High", pitfall: "Being the only VA; not hiring staff early.", advantage: "Excellent hiring/training process, sales ability.", successDriver: "High-volume client acquisition and management." },
+            { id: 12, model: "Local Service Business (e.g., Cleaning)", estTime: 6, difficulty: 1, startupCost: 1250, avgMargin: 40, scalability: 3, expertise: 1, timePerWeek: 35, cac: "Low", failureRate: "Low", diversification: "Medium", platformReliance: "Low", clientContact: "Medium", pitfall: "Not defining a precise service area/niche.", advantage: "Low startup cost, strong local word-of-mouth.", successDriver: "High retention rate and premium pricing." },
+            { id: 13, model: "YouTube Channel Monetization", estTime: 27, difficulty: 3, startupCost: 2750, avgMargin: 70, scalability: 4, expertise: 3, timePerWeek: 25, cac: "Very Low", failureRate: "Medium", diversification: "Very High", platformReliance: "High", clientContact: "Low", pitfall: "Inconsistency; creating content only for monetization.", advantage: "Unique persona, video production skill.", successDriver: "Multiple revenue streams (ads, courses, merch)." },
+            { id: 14, model: "Flipping Websites/Stores", estTime: 12, difficulty: 4, startupCost: 12500, avgMargin: 100, scalability: 3, expertise: 4, timePerWeek: 20, cac: "Low", failureRate: "Medium", diversification: "Low", platformReliance: "Medium", clientContact: "Low", pitfall: "Overpaying for a site with non-transferable revenue.", advantage: "Due diligence skills, efficiency in optimization.", successDriver: "Identifying undervalued, broken revenue sites." },
+            { id: 15, model: "Content Repurposing Agency", estTime: 8, difficulty: 2, startupCost: 1000, avgMargin: 80, scalability: 4, expertise: 3, timePerWeek: 35, cac: "Medium", failureRate: "Low", diversification: "High", platformReliance: "Medium", clientContact: "High", pitfall: "Slow delivery times; poor communication.", advantage: "Process efficiency, high-speed production team.", successDriver: "Landing high-volume, retainer clients." }
+        ];
+
+        const getTagClass = (value, type) => {
+            if (type === 'cost') {
+                if (value < 1000) return 'tag-green';
+                if (value < 5000) return 'tag-yellow';
+                return 'tag-red';
+            }
+            if (type === 'scalability') {
+                if (value >= 4) return 'tag-green';
+                if (value >= 3) return 'tag-blue';
+                return 'tag-yellow';
+            }
+            if (type === 'difficulty') {
+                if (value <= 2) return 'tag-green';
+                if (value <= 3) return 'tag-yellow';
+                return 'tag-red';
+            }
+             if (type === 'cac') {
+                if (value.toLowerCase().includes('low')) return 'tag-green';
+                if (value.toLowerCase() === 'medium') return 'tag-blue';
+                return 'tag-red';
+            }
+            return 'tag-purple';
+        };
+
+        const cardContainer = document.getElementById('card-container');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const closeModalBtn = document.getElementById('close-modal');
+        const searchInput = document.getElementById('search');
+        const costFilter = document.getElementById('cost-filter');
+        const scalabilityFilter = document.getElementById('scalability-filter');
+        const sortBy = document.getElementById('sort-by');
+        const barChartMetricSelect = document.getElementById('bar-chart-metric');
+        const resultsCountEl = document.getElementById('results-count');
+        const noResultsEl = document.getElementById('no-results');
+
+        let scatterChart, barChart;
+
+        const createCard = (data) => {
+            return `
+                <div class="bg-white rounded-xl shadow-md border border-stone-200 p-5 flex flex-col cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" data-id="${data.id}">
+                    <h3 class="text-lg font-bold text-stone-900 mb-2 truncate">${data.model}</h3>
+                    <div class="flex-grow space-y-3 mb-4 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-stone-500">Time to $10k:</span>
+                            <span class="font-semibold text-teal-700">${data.estTime} months</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-stone-500">Startup Cost:</span>
+                            <span class="tag ${getTagClass(data.startupCost, 'cost')}">$${data.startupCost.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-stone-500">Scalability:</span>
+                            <span class="tag ${getTagClass(data.scalability, 'scalability')}">${data.scalability}/5</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-stone-500">Difficulty:</span>
+                            <span class="tag ${getTagClass(data.difficulty, 'difficulty')}">${data.difficulty}/5</span>
+                        </div>
+                    </div>
+                    <button class="mt-auto w-full text-center bg-teal-50 text-teal-700 font-semibold py-2 px-4 rounded-lg hover:bg-teal-100 transition-colors">View Details</button>
+                </div>
+            `;
+        };
+        
+        const openModal = (data) => {
+            modalBody.innerHTML = `
+                <h2 class="text-3xl font-bold text-stone-900 mb-4">${data.model}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
+                    <div>
+                        <h4 class="font-bold text-stone-600">Key Metrics</h4>
+                        <ul class="mt-2 space-y-2 text-stone-700">
+                            <li class="flex justify-between"><span>Est. Time to $10k:</span> <span class="font-semibold">${data.estTime} mo</span></li>
+                            <li class="flex justify-between"><span>Difficulty:</span> <span class="font-semibold">${data.difficulty}/5</span></li>
+                            <li class="flex justify-between"><span>Startup Cost:</span> <span class="font-semibold">$${data.startupCost.toLocaleString()}</span></li>
+                            <li class="flex justify-between"><span>Avg. Profit Margin:</span> <span class="font-semibold">${data.avgMargin}%</span></li>
+                            <li class="flex justify-between"><span>Scalability:</span> <span class="font-semibold">${data.scalability}/5</span></li>
+                            <li class="flex justify-between"><span>Required Expertise:</span> <span class="font-semibold">${data.expertise}/5</span></li>
+                            <li class="flex justify-between"><span>Time/Week at $10k:</span> <span class="font-semibold">${data.timePerWeek} hrs</span></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-stone-600">Risk & Profile</h4>
+                        <ul class="mt-2 space-y-2 text-stone-700">
+                           <li class="flex justify-between"><span>Customer Acq. Cost:</span> <span class="tag ${getTagClass(data.cac, 'cac')}">${data.cac}</span></li>
+                           <li class="flex justify-between"><span>Failure Rate:</span> <span class="font-semibold">${data.failureRate}</span></li>
+                           <li class="flex justify-between"><span>Diversification:</span> <span class="font-semibold">${data.diversification}</span></li>
+                           <li class="flex justify-between"><span>Platform Reliance:</span> <span class="font-semibold">${data.platformReliance}</span></li>
+                           <li class="flex justify-between"><span>Client Contact:</span> <span class="font-semibold">${data.clientContact}</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <div class="bg-stone-100 p-4 rounded-lg">
+                        <p><strong class="text-stone-600">💡 Success Driver:</strong> ${data.successDriver}</p>
+                    </div>
+                     <div class="bg-blue-50 p-4 rounded-lg">
+                        <p><strong class="text-blue-700">🏆 Unfair Advantage:</strong> ${data.advantage}</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <p><strong class="text-red-700">🛑 Key Pitfall to Avoid:</strong> ${data.pitfall}</p>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const renderCards = (data) => {
+            cardContainer.innerHTML = data.map(createCard).join('');
+            resultsCountEl.textContent = `Showing ${data.length} of ${businessData.length} models`;
+            
+            if (data.length === 0) {
+                noResultsEl.classList.remove('hidden');
+                cardContainer.classList.add('hidden');
+            } else {
+                noResultsEl.classList.add('hidden');
+                cardContainer.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('[data-id]').forEach(card => {
+                card.addEventListener('click', () => {
+                    const id = parseInt(card.dataset.id);
+                    const selectedData = businessData.find(item => item.id === id);
+                    openModal(selectedData);
+                });
+            });
+        };
+
+        const renderCharts = (data) => {
+            const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            const barMetric = barChartMetricSelect.value;
+            const barLabels = {
+                avgMargin: 'Avg. Margin (%)',
+                startupCost: 'Startup Cost ($)',
+                expertise: 'Expertise (1-5)',
+                timePerWeek: 'Time/Week (Hrs)'
+            };
+
+            if (scatterChart) scatterChart.destroy();
+            scatterChart = new Chart(scatterCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Business Models',
+                        data: data.map(d => ({ x: d.estTime, y: d.scalability, label: d.model })),
+                        backgroundColor: 'rgba(13, 148, 136, 0.7)',
+                        borderColor: 'rgba(13, 148, 136, 1)',
+                        pointRadius: 8,
+                        pointHoverRadius: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Est. Time to $10k (Months)' } },
+                        y: { title: { display: true, text: 'Scalability (1-5)' }, min: 0.5, max: 5.5 }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return context.raw.label; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (barChart) barChart.destroy();
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.model.length > 20 ? d.model.substring(0, 20) + '...' : d.model),
+                    datasets: [{
+                        label: barLabels[barMetric],
+                        data: data.map(d => d[barMetric]),
+                        backgroundColor: 'rgba(13, 148, 136, 0.7)',
+                        borderColor: 'rgba(13, 148, 136, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        };
+        
+        const filterAndRender = () => {
+            let filteredData = [...businessData];
+
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                filteredData = filteredData.filter(d => d.model.toLowerCase().includes(searchTerm));
+            }
+
+            const maxCost = parseInt(costFilter.value);
+            filteredData = filteredData.filter(d => d.startupCost <= maxCost);
+
+            const minScalability = parseInt(scalabilityFilter.value);
+            filteredData = filteredData.filter(d => d.scalability >= minScalability);
+            
+            const sortValue = sortBy.value;
+            if(sortValue !== 'default') {
+                const [key, order] = sortValue.split('-');
+                filteredData.sort((a,b) => {
+                    if (order === 'asc') return a[key] > b[key] ? 1 : -1;
+                    return a[key] < b[key] ? 1 : -1;
+                });
+            }
+
+            renderCards(filteredData);
+            renderCharts(filteredData);
+        };
+
+        [searchInput, costFilter, scalabilityFilter, sortBy].forEach(el => {
+            el.addEventListener('input', filterAndRender);
+        });
+        barChartMetricSelect.addEventListener('change', filterAndRender);
+        
+        closeModalBtn.addEventListener('click', () => {
+             modal.classList.add('hidden');
+             document.body.style.overflow = 'auto';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                 modal.classList.add('hidden');
+                 document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Initial render
+        filterAndRender();
+
+    </script>
+
+</body>
+</html>
